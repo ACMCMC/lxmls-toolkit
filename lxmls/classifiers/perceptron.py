@@ -27,6 +27,17 @@ class Perceptron(lc.LinearClassifier):
             # change the seed so next epoch we don't get the same permutation
             seed += 1
 
+            def f(x, y):
+                x = x.flatten()
+                # This is the Kronecker product between x and a one-hot encoded y
+                one_hot_y = np.zeros((nr_c,))
+                one_hot_y[y] = 1
+                kronecker_product = np.zeros((nr_f, nr_c))
+                for i in range(nr_c):
+                    kronecker_product[:, i] = x * one_hot_y[i]
+                # Return the Kronecker product
+                return kronecker_product
+
             for nr in perm:
                 # Make a prediction with the current model parameters
                 this_doc_features = x[nr : nr + 1, :]  # shape: (num_features, )
@@ -34,8 +45,8 @@ class Perceptron(lc.LinearClassifier):
                 real_class = y[nr].item()
                 chosen_class = class_weighted_features.sum(axis=1).argmax().item()
                 # Increase features of the prediction
-                w[:, real_class] += this_doc_features.flatten()
-                w[:, chosen_class] -= this_doc_features.flatten()
+                w += f(this_doc_features, real_class)
+                w -= f(this_doc_features, chosen_class)
 
                 # If real == chosen, then we'll do nothing (sum and subtract = nothing)
 
